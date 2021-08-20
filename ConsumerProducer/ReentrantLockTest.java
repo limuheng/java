@@ -1,6 +1,5 @@
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -8,7 +7,7 @@ public class ReentrantLockTest {
     private Lock mLock = new ReentrantLock();
 
     List<Integer> mQueue = new ArrayList<Integer>();
-    AtomicBoolean mStop = new AtomicBoolean(false);
+    boolean mStop = false;
 
     private Runnable producer = new Runnable() {
         @Override
@@ -28,7 +27,12 @@ public class ReentrantLockTest {
                     e.printStackTrace();
                 }
             }
-            mStop.set(true);
+            mLock.lock();
+            try {
+                mStop = true;
+            } finally {
+                mLock.unlock();
+            }
             System.out.println(name + "停止生產");
         }
     };
@@ -47,8 +51,13 @@ public class ReentrantLockTest {
                 } finally {
                     mLock.unlock();
                 }
-                if (mStop.get()) {
-                    break;
+                mLock.lock();
+                try {
+                    if (mStop) {
+                        break;
+                    }
+                } finally {
+                    mLock.unlock();
                 }
                 try {
                     Thread.sleep(500);

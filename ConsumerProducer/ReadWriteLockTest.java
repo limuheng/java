@@ -8,7 +8,7 @@ public class ReadWriteLockTest {
     private ReentrantReadWriteLock mLock = new ReentrantReadWriteLock();
     
     List<Integer> mQueue = new ArrayList<Integer>();
-    AtomicBoolean mStop = new AtomicBoolean(false);
+    boolean mStop = false;
 
     private Runnable producer = new Runnable() {
         @Override
@@ -28,7 +28,12 @@ public class ReadWriteLockTest {
                     e.printStackTrace();
                 }
             }
-            mStop.set(true);
+            mLock.writeLock().lock();
+            try {
+                mStop = true;
+            } finally {
+                mLock.writeLock().unlock();
+            }
             System.out.println(name + "停止生產");
         }
     };
@@ -45,8 +50,13 @@ public class ReadWriteLockTest {
                 } finally {
                     mLock.readLock().unlock();
                 }
-                if (mStop.get()) {
-                    break;
+                mLock.readLock().lock();
+                try {
+                    if (mStop) {
+                        break;
+                    }
+                } finally {
+                    mLock.readLock().unlock();
                 }
                 try {
                     Thread.sleep(500);
